@@ -6,6 +6,7 @@ import numpy as np
 from tariffs import date_to_index, get_tariff_data
 from collections import Counter
 from rich import print
+import json
 
 '''
 Usage
@@ -93,7 +94,7 @@ def get_aggregate_carbon_intensity_tariff_data(regionid=13,region_code='C'): # B
     aggregate_carbon_intensity_tariff_data[peak_time_of_day]['peak'] = True
     return aggregate_carbon_intensity_tariff_data
 
-print(get_aggregate_carbon_intensity_tariff_data())
+print(json.dumps(get_aggregate_carbon_intensity_tariff_data()))
 
 
     
