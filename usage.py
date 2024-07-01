@@ -23,38 +23,11 @@ auth = """
   }
 """
 variables = { "input": { "APIKey": api_key } }
-
 data = client.execute(query=auth, variables=variables)
 #print(data)
 token = data['data']['obtainKrakenToken']['token']
 headers = { "Authorization": token }
 
-query = """
-  query Devices(
-    $accountNumber: String!
-  ) {
-    devices(
-      accountNumber: $accountNumber
-    ) {
-      id
-      name
-      deviceType
-      provider
-      status {
-        current
-        isSuspended
-        currentState
-      }
-      alerts {
-        message
-        publishedAt
-      }
-    }
-  }
-"""
-variables = { "accountNumber": account_number }
-data = client.execute(query=query, variables=variables, headers=headers)
-print(data)
 
 query = """
   query OctocareUsageInfo($accountNumber: String!) {
@@ -91,31 +64,5 @@ query = """
 """
 # HALF_HOURLY, FIVE_MINUTES, TEN_SECONDS, ONE_MINUTE
 variables = { "deviceId": meter_device_id }
-
 data = client.execute(query=query, variables=variables, headers=headers)
 print(data)
-
-
-# query = """
-#   query MeterPoints(
-#     $mpan: ID,
-#     $mprn: ID
-#   ) {
-#     meterPoints(
-#       mpan: $mpan,
-#       mprn: $mprn
-#     ) {
-#       status
-#       meters {
-#         id
-#         serialNumber
-#       }
-#     }
-#   }
-# """
-# variables = { "mpan": "2200018117686", "mprn": None }
-# # consumption
-
-# data = client.execute(query=query, variables=variables, headers=headers)
-# print(data)
-
