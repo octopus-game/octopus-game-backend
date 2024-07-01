@@ -7,6 +7,9 @@ from tariffs import date_to_index, get_tariff_data
 from collections import Counter
 from rich import print
 import json
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import time
+
 
 '''
 Usage
@@ -31,8 +34,7 @@ def get_carbon_intensity_data(regionid=13):
     headers = {'Accept': 'application/json'}
     client = httpx.Client()
     midnight = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-    tomorrow_start =  midnight + timedelta(days=1)
-    tomorrow_end = tomorrow_start + timedelta(hours=3)
+    tomorrow_end = midnight + timedelta(days=1, hours=3)
     request = client.get(f"https://api.carbonintensity.org.uk/regional/intensity/{midnight.isoformat()}/{tomorrow_end.isoformat()}/regionid/{regionid}", params={}, headers = headers)
     intensity_data = request.json().get('data').get('data')
 
@@ -94,7 +96,27 @@ def get_aggregate_carbon_intensity_tariff_data(regionid=13,region_code='C'): # B
     aggregate_carbon_intensity_tariff_data[peak_time_of_day]['peak'] = True
     return aggregate_carbon_intensity_tariff_data
 
-print(json.dumps(get_aggregate_carbon_intensity_tariff_data()))
+# print(json.dumps(get_aggregate_carbon_intensity_tariff_data()))
 
+hostName = "localhost"
+serverPort = 8080
 
+class GameServer(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "application/json")
+        self.end_headers()
+        self.wfile.write(bytes(json.dumps(get_aggregate_carbon_intensity_tariff_data()), "utf-8"))
+
+if __name__ == "__main__":        
+    webServer = HTTPServer((hostName, serverPort), GameServer)
+    print("Server started http://%s:%s" % (hostName, serverPort))
+
+    try:
+        webServer.serve_forever()
+    except KeyboardInterrupt:
+        pass
+
+    webServer.server_close()
+    print("Server stopped.")
     
