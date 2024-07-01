@@ -3,6 +3,7 @@
 import os
 import logging
 from python_graphql_client import GraphqlClient
+from datetime import datetime, timezone, timedelta
 
 #logging.basicConfig(level=logging.DEBUG)
                   
@@ -43,26 +44,46 @@ meter_device_id = data['data']['octocareUsageInfo']['meterDeviceId']
 print(meter_device_id)
 
 
-#  $start: DateTime,
-#  $end: DateTime
 
 query = """
   query SmartMeterTelemetry(
-    $deviceId: String!
+    $deviceId: String!,
+    $start: DateTime,
+    $end: DateTime
   ) {
     smartMeterTelemetry(
       deviceId: $deviceId
-      grouping: TEN_SECONDS
-    	start: "2024-06-30T00:00Z"
-	    end: "2024-06-30T01:00Z"
+      grouping: HALF_HOURLY
+    	start: $start
+	    end: $end
     ) {
       readAt
-      consumption
+      consumptionDelta
       demand
     }
   }
 """
 # HALF_HOURLY, FIVE_MINUTES, TEN_SECONDS, ONE_MINUTE
-variables = { "deviceId": meter_device_id }
+midnight = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+
+variables = { "deviceId": meter_device_id, "start": (midnight - timedelta(days=1)).isoformat(), "end": midnight.isoformat() }
 data = client.execute(query=query, variables=variables, headers=headers)
-print(data)
+#print(data)
+
+def date_to_index(iso_date, offset_days=0):
+  date = datetime.fromisoformat(iso_date)
+  midnight = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=offset_days)
+  from_midnight = date - midnight
+  if from_midnight.days != 0:
+    return None
+  return int(from_midnight.seconds / 60 / 30)
+
+by_half_hour = [None] * 48
+
+results = data['data']['smartMeterTelemetry']
+for block in results:
+  index = date_to_index(block['readAt'], offset_days=-1)
+  if index is not None:
+    by_half_hour[index] = float(block['consumptionDelta'])
+
+print(by_half_hour)
