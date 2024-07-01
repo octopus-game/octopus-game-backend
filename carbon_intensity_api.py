@@ -42,8 +42,9 @@ def get_carbon_intensity_data(postcode=None, region_id=13):
         intensity_value = max(block['intensity'].get('forecast',0), block['intensity'].get('actual',0))
         intensity_index = block['intensity'].get('index',None)
         top_3_generation_mix = parse_generationmix(block['generationmix'])
-        if index:
+        if index is not None:
             by_half_hour[index] = {'intensity_value':intensity_value,'intensity_index':intensity_index,'top_3_generation_mix': top_3_generation_mix}
+
 
     return by_half_hour
 
