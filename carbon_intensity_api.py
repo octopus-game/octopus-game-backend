@@ -3,13 +3,13 @@
 import httpx
 from datetime import datetime, timezone, timedelta
 import numpy as np
-from tariffs import date_to_index, get_tariff_data
 from collections import Counter
 from rich import print
 import json
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import time
-
+from weather import get_weather_data
+from tariffs import date_to_index, get_tariff_data
 
 '''
 Usage
@@ -53,11 +53,12 @@ def get_carbon_intensity_data(regionid=13):
             by_half_hour[index+buffer] = {'intensity_value':intensity_value,'intensity_index':intensity_index,'top_3_generation_mix': top_3_generation_mix}
     return by_half_hour
 
-def get_aggregate_carbon_intensity_tariff_data(regionid=13,region_code='C'): # Both point to London at the moment
+def get_aggregate_carbon_intensity_tariff_data(regionid=13, region_code='C', location_code=352613): # All point to London at the moment
     aggregate_carbon_intensity_tariff_data = {}
     carbonintensity = get_carbon_intensity_data(regionid=regionid)
     tariff_data = get_tariff_data(region_code=region_code)
-    morning, afternoon, evening, night = [],[],[],[]
+    weather_data = get_weather_data(location_code)
+
     time_of_day_indexes = {'morning' : (14,24), 'afternoon': (24,34) , 'evening': (34,44) , 'night': (44,54)}
     max_tariff = 0
     peak_time_of_day = None
@@ -67,6 +68,8 @@ def get_aggregate_carbon_intensity_tariff_data(regionid=13,region_code='C'): # B
         energy_source_list = []
         energy_contribution_sum = 0
         tariff_sum = 0
+        sun_sum = 0
+        wind_sum = 0
 
         count = 0
         for i in range(indexes[0],indexes[1]):
@@ -74,6 +77,15 @@ def get_aggregate_carbon_intensity_tariff_data(regionid=13,region_code='C'): # B
                 tariff_sum += tariff_data[i]
                 count += 1
         average_tariff_cost = tariff_sum / count if count > 0 else None
+
+        count = 0
+        for i in range(indexes[0],indexes[1]):
+            if weather_data[i] is not None:
+                sun_sum += weather_data[i]['sun']
+                wind_sum += weather_data[i]['wind']
+            count += 1
+        average_sun = sun_sum / count if count > 0 else None
+        average_wind_speed = wind_sum / count if count > 0 else None
 
         count = 0
         for i in range(indexes[0],indexes[1]):
@@ -93,7 +105,7 @@ def get_aggregate_carbon_intensity_tariff_data(regionid=13,region_code='C'): # B
         common_energy_source_contribution = int(energy_contribution_sum / count)
         aggregate_carbon_intensity_tariff_data[time_of_day] = {'average_carbon_intensity_value(gCO2/kWh)':average_intensity_value, 'common_intensity_index':common_intensity_index,
                                                                  'common_energy_source':common_energy_source, 'common_energy_source_contribution(%)': common_energy_source_contribution,
-                                                                 'average_tariff':average_tariff_cost, 'peak': False }
+                                                                 'average_tariff':average_tariff_cost, 'peak': False, 'sunniness': average_sun, 'wind_speed': average_wind_speed }
         if average_tariff_cost is not None and average_tariff_cost > max_tariff:
             peak_time_of_day = time_of_day
             max_tariff = average_tariff_cost
