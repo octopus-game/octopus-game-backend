@@ -62,17 +62,23 @@ def get_aggregate_carbon_intensity_tariff_data(regionid=13,region_code='C'): # B
     max_tariff = 0
     peak_time_of_day = None
     for time_of_day, indexes in time_of_day_indexes.items():
-        count = 0
         intensity_sum = 0
         intensity_index_list = []
         energy_source_list = []
         energy_contribution_sum = 0
         tariff_sum = 0
 
+        count = 0
+        for i in range(indexes[0],indexes[1]):
+            if tariff_data[i] is not None:
+                tariff_sum += tariff_data[i]
+                count += 1
+        average_tariff_cost = tariff_sum / count if count > 0 else None
+
+        count = 0
         for i in range(indexes[0],indexes[1]):
             intensity_sum += carbonintensity[i]['intensity_value']
             intensity_index_list.append(carbonintensity[i]['intensity_index'])
-            tariff_sum+=tariff_data[i]
             if carbonintensity[i]['top_3_generation_mix'][0]['fuel'] != 'imports': # Interest in generated power rather than importsS
                 energy_source_list.append(carbonintensity[i]['top_3_generation_mix'][0]['fuel'])
                 energy_contribution_sum += carbonintensity[i]['top_3_generation_mix'][0]['perc']
@@ -82,14 +88,13 @@ def get_aggregate_carbon_intensity_tariff_data(regionid=13,region_code='C'): # B
             count +=1
 
         average_intensity_value = intensity_sum / count 
-        average_tariff_cost = tariff_sum / count
         common_intensity_index = Counter(intensity_index_list).most_common(1)[0][0]
         common_energy_source = Counter(energy_source_list).most_common(1)[0][0]
         common_energy_source_contribution = int(energy_contribution_sum / count)
         aggregate_carbon_intensity_tariff_data[time_of_day] = {'average_carbon_intensity_value(gCO2/kWh)':average_intensity_value, 'common_intensity_index':common_intensity_index,
                                                                  'common_energy_source':common_energy_source, 'common_energy_source_contribution(%)': common_energy_source_contribution,
                                                                  'average_tariff':average_tariff_cost, 'peak': False }
-        if average_tariff_cost > max_tariff:
+        if average_tariff_cost is not None and average_tariff_cost > max_tariff:
             peak_time_of_day = time_of_day
             max_tariff = average_tariff_cost
 
