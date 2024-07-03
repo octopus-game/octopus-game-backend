@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import math
 import httpx
 from datetime import datetime, timezone, timedelta
 import numpy as np
@@ -105,7 +106,8 @@ def get_aggregate_carbon_intensity_tariff_data(regionid=13, region_code='C', loc
         common_energy_source_contribution = int(energy_contribution_sum / count)
         aggregate_carbon_intensity_tariff_data[time_of_day] = {'average_carbon_intensity_value(gCO2/kWh)':average_intensity_value, 'common_intensity_index':common_intensity_index,
                                                                  'common_energy_source':common_energy_source, 'common_energy_source_contribution(%)': common_energy_source_contribution,
-                                                                 'average_tariff':average_tariff_cost, 'peak': False, 'sunniness': average_sun, 'wind_speed': average_wind_speed }
+                                                                 'average_tariff':average_tariff_cost, 'peak': False,
+                                                                 'sunniness': math.ceil(average_sun), 'wind_speed': math.ceil(average_wind_speed) }
         if average_tariff_cost is not None and average_tariff_cost > max_tariff:
             peak_time_of_day = time_of_day
             max_tariff = average_tariff_cost
